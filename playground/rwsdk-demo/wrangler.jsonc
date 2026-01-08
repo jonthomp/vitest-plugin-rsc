@@ -14,6 +14,7 @@
 
   // Assets configuration
   "assets": {
+    "directory": "public",
     "binding": "ASSETS"
   },
 

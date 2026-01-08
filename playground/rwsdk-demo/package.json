@@ -21,6 +21,7 @@
     "check": "npm run generate && npm run types",
     "types": "tsc",
     "test": "rm -rf ./node_modules/.vite && vitest",
+    "test:workers": "vitest -c ./vitest.workers.config.ts",
     "test:watch": "vitest watch"
   },
   "dependencies": {
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.17.1",
+    "@cloudflare/vitest-pool-workers": "^0.12.1",
     "@cloudflare/workers-types": "4.20260103.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/user-event": "^14.6.1",

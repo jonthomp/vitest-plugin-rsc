@@ -5,6 +5,10 @@ export default defineConfig({
   plugins: [vitestPluginRSC()],
   test: {
     restoreMocks: true,
+    // Only run this project's tests in browser mode.
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // Keep worker-pool tests separate from browser-mode tests.
+    exclude: ["src/**/*.worker.test.{ts,tsx}"],
     browser: {
       enabled: true,
       provider: "playwright",

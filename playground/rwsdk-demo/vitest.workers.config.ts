@@ -9,7 +9,9 @@ export default defineWorkersConfig({
     poolOptions: {
       workers: {
         wrangler: {
-          configPath: "./wrangler.jsonc",
+          // Use the built worker output (and its generated wrangler.json) so
+          // conditional exports like `rwsdk/worker` resolve correctly.
+          configPath: "./dist/worker/wrangler.json",
         },
       },
     },

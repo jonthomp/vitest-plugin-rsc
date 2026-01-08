@@ -21,7 +21,7 @@
     "check": "npm run generate && npm run types",
     "types": "tsc",
     "test": "rm -rf ./node_modules/.vite && vitest",
-    "test:workers": "vitest -c ./vitest.workers.config.ts",
+    "test:workers": "pnpm build && vitest -c ./vitest.workers.config.ts",
     "test:watch": "vitest watch"
   },
   "dependencies": {

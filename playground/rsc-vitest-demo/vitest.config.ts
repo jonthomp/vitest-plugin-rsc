@@ -7,7 +7,7 @@ export default defineConfig({
     restoreMocks: true,
     browser: {
       enabled: true,
-      provider: "preview",
+      provider: "playwright",
       screenshotFailures: false,
       instances: [{ browser: "chromium" }],
     },

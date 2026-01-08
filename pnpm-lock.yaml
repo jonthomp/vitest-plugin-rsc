@@ -297,6 +297,9 @@ importers:
       '@vitest/ui':
         specifier: ^3.2.4
         version: 3.2.4(vitest@3.2.4)
+      msw:
+        specifier: ^2.10.4
+        version: 2.10.4(@types/node@24.5.2)(typescript@5.9.3)
       playwright:
         specifier: ^1.54.1
         version: 1.54.1
@@ -8349,7 +8352,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - '@types/node'
-    optional: true
 
   mute-stream@2.0.0: {}
 

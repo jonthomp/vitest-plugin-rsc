@@ -4,9 +4,9 @@ import { page } from "vitest/browser";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "#db/schema.ts";
+import * as authSessionModule from "#lib/auth-session.ts";
 import * as dbModule from "#lib/db.ts";
-import { setCurrentUser } from "#lib/auth-session.ts";
-import { deleteFlashCookies } from "#lib/flash-cookie.ts";
+import * as flashCookieModule from "#lib/flash-cookie.ts";
 import "#app/globals.css";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
@@ -14,6 +14,10 @@ import "@fontsource-variable/geist-mono";
 vi.mock("#lib/db.ts");
 
 const { resetDb } = dbModule as typeof import("#lib/__mocks__/db.ts");
+const { setCurrentUser } =
+  authSessionModule as typeof import("#lib/__mocks__/auth-session.ts");
+const { deleteFlashCookies } =
+  flashCookieModule as typeof import("#lib/__mocks__/flash-cookie.ts");
 
 vi.mock("#lib/auth.ts", () => ({
   auth: {

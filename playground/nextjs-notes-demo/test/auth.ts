@@ -1,5 +1,5 @@
 import { db } from "#lib/db.ts";
-import { setCurrentUser } from "#lib/auth-session.mock.ts";
+import { setCurrentUser } from "#lib/auth-session.ts";
 import type { AuthUser } from "#lib/auth-session.ts";
 import { user as userTable } from "#db/schema.ts";
 

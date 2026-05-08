@@ -4,12 +4,35 @@ import { page } from "vitest/browser";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "#db/schema.ts";
-import { reset } from "#lib/db.mock.ts";
-import { setCurrentUser } from "#lib/auth-session.mock.ts";
-import { deleteFlashCookies } from "#lib/flash-cookie.mock.ts";
+import * as dbModule from "#lib/db.ts";
+import { setCurrentUser } from "#lib/auth-session.ts";
+import { deleteFlashCookies } from "#lib/flash-cookie.ts";
 import "#app/globals.css";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
+
+vi.mock("#lib/db.ts");
+
+const { resetDb } = dbModule as typeof import("#lib/__mocks__/db.ts");
+
+vi.mock("#lib/auth.ts", () => ({
+  auth: {
+    api: {
+      deletePasskey: vi.fn(),
+      listPasskeys: vi.fn(async () => []),
+      signInEmail: vi.fn(),
+      signInMagicLink: vi.fn(),
+      signOut: vi.fn(),
+      signUpEmail: vi.fn(),
+    },
+  },
+}));
+vi.mock("#lib/auth-session.ts");
+vi.mock("#lib/flash-cookie.ts");
+vi.mock("next/font/google", () => ({
+  Geist: () => ({ variable: "font-geist-sans" }),
+  Geist_Mono: () => ({ variable: "font-geist-mono" }),
+}));
 
 // next/font/google is mocked below, so the --font-geist-* CSS variables that
 // RootLayout's className would normally define are absent in tests. Bind the
@@ -33,25 +56,6 @@ disableMotionStyle.textContent = `
   }
 `;
 document.head.appendChild(disableMotionStyle);
-
-vi.mock("#lib/auth.ts", () => ({
-  auth: {
-    api: {
-      deletePasskey: vi.fn(),
-      listPasskeys: vi.fn(async () => []),
-      signInEmail: vi.fn(),
-      signInMagicLink: vi.fn(),
-      signOut: vi.fn(),
-      signUpEmail: vi.fn(),
-    },
-  },
-}));
-vi.mock("#lib/auth-session.ts", () => import("#lib/auth-session.mock.ts"));
-vi.mock("#lib/flash-cookie.ts", () => import("#lib/flash-cookie.mock.ts"));
-vi.mock("next/font/google", () => ({
-  Geist: () => ({ variable: "font-geist-sans" }),
-  Geist_Mono: () => ({ variable: "font-geist-mono" }),
-}));
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 } as const;
 const TEST_NOW = "2026-05-06T00:00:00.000Z";
@@ -113,7 +117,7 @@ beforeEach(async () => {
   if (!(clone instanceof PGlite)) {
     throw new TypeError("Expected PGlite.clone() to return a PGlite instance");
   }
-  reset(drizzle(clone, { schema }));
+  resetDb(drizzle(clone, { schema }));
 
   vi.setSystemTime(new Date(TEST_NOW));
 

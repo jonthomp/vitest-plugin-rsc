@@ -7,7 +7,6 @@
     "#hooks/*": "./hooks/*",
     "#lib/db.ts": {
       "development": "./lib/db.dev.ts",
-      "test": "./lib/db.mock.ts",
       "default": "./lib/db.ts"
     },
     "#*": "./*"

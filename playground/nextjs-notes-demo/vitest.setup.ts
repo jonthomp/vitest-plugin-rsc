@@ -14,10 +14,8 @@ import "@fontsource-variable/geist-mono";
 vi.mock("#lib/db.ts");
 
 const { resetDb } = dbModule as typeof import("#lib/__mocks__/db.ts");
-const { setCurrentUser } =
-  authSessionModule as typeof import("#lib/__mocks__/auth-session.ts");
-const { deleteFlashCookies } =
-  flashCookieModule as typeof import("#lib/__mocks__/flash-cookie.ts");
+const { setCurrentUser } = authSessionModule as typeof import("#lib/__mocks__/auth-session.ts");
+const { deleteFlashCookies } = flashCookieModule as typeof import("#lib/__mocks__/flash-cookie.ts");
 
 vi.mock("#lib/auth.ts", () => ({
   auth: {

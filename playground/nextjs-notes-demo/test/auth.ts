@@ -3,8 +3,7 @@ import * as authSessionModule from "#lib/auth-session.ts";
 import type { AuthUser } from "#lib/auth-session.ts";
 import { user as userTable } from "#db/schema.ts";
 
-const { setCurrentUser } =
-  authSessionModule as typeof import("#lib/__mocks__/auth-session.ts");
+const { setCurrentUser } = authSessionModule as typeof import("#lib/__mocks__/auth-session.ts");
 
 const now = new Date("2026-01-01T00:00:00.000Z");
 

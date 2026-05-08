@@ -2,7 +2,9 @@
 
 ## Commit And PR Titles
 
-Use Conventional Commits for PR titles and squash commit titles. Release Please reads commits on `main` to decide versions, generate changelogs, create GitHub releases, and publish npm packages.
+Use Conventional Commits for PR titles and for commits that land on `main`. Release Please reads commits on `main` to decide versions, generate changelogs, create GitHub releases, and publish npm packages.
+
+Every commit that lands on `main` should be meaningful for the changelog or review history. Squash noisy, mechanical, or intermediate commits when they are better represented as one release note.
 
 Good title examples for this repo:
 
@@ -12,7 +14,7 @@ Good title examples for this repo:
 - `chore: update Vite and Vitest tooling`
 - `feat!: remove deprecated testing API`
 
-While the package is pre-1.0, breaking changes are acceptable when intentional. Mark them with `!` in the type, such as `feat!: ...`, or add a `BREAKING CHANGE:` footer to the squash commit body.
+While the package is pre-1.0, breaking changes are acceptable when intentional. Mark them with `!` in the type, such as `feat!: ...`, or add a `BREAKING CHANGE:` footer to the relevant commit body.
 
 ## Releases
 

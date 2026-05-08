@@ -1,6 +1,6 @@
 # vitest-plugin-rsc
 
-> Vitest plugin for slice-level full-stack testing of React Server Components.
+> Render React Server Components in Vitest Browser Mode.
 
 [![npm version](https://img.shields.io/npm/v/vitest-plugin-rsc?color=cb3837)](https://www.npmjs.com/package/vitest-plugin-rsc)
 [![CI](https://github.com/storybookjs/vitest-plugin-rsc/actions/workflows/ci.yml/badge.svg)](https://github.com/storybookjs/vitest-plugin-rsc/actions/workflows/ci.yml)

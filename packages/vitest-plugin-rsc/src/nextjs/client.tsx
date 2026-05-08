@@ -24,7 +24,7 @@ import {
   PathParamsContext,
   SearchParamsContext,
 } from "next/dist/shared/lib/hooks-client-context.shared-runtime.js";
-import React, { type ReactNode, useMemo } from "react";
+import React, { type ReactNode, useMemo, useRef } from "react";
 import { buildFlightRouterState } from "./flight-router-state";
 
 declare global {
@@ -47,6 +47,7 @@ export const NextRouter = ({
 }) => {
   route ??= url;
   const location = new URL(url, "http://localhost");
+  const renderVersion = useRenderVersion({ children, route, url });
 
   const actionQueue: AppRouterActionQueue = {
     state: createInitialRouterState({
@@ -72,8 +73,41 @@ export const NextRouter = ({
     last: null,
     onRouterTransitionStart: null,
   };
-  return <AppRouter actionQueue={actionQueue}></AppRouter>;
+  return <AppRouter key={renderVersion} actionQueue={actionQueue}></AppRouter>;
 };
+
+function useRenderVersion({
+  children,
+  route,
+  url,
+}: {
+  children: ReactNode;
+  route: string;
+  url: string;
+}) {
+  const stateRef = useRef<{
+    children: ReactNode;
+    route: string;
+    url: string;
+    version: number;
+  } | null>(null);
+
+  if (
+    stateRef.current === null ||
+    stateRef.current.children !== children ||
+    stateRef.current.route !== route ||
+    stateRef.current.url !== url
+  ) {
+    stateRef.current = {
+      children,
+      route,
+      url,
+      version: (stateRef.current?.version ?? 0) + 1,
+    };
+  }
+
+  return stateRef.current.version;
+}
 
 function createInitialRSCPayload(props: {
   canonicalUrl: string;

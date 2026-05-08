@@ -1,21 +1,16 @@
 import { expect, test } from "vitest";
 import { eq } from "drizzle-orm";
 import { page, userEvent } from "vitest/browser";
-import { renderServer } from "vitest-plugin-rsc/nextjs/testing-library";
 import { db } from "#lib/db.ts";
 import { notes } from "#db/schema.ts";
 import { applyScenario, scenarioUsers } from "#lib/db.scenarios.ts";
 import { otherUser, signInAs, testUser } from "#test/auth.ts";
-import { AppShell } from "#app/layout.tsx";
+import { renderServer } from "#test/render.tsx";
 import NotesPage from "./page.tsx";
 
 async function renderNotesPage() {
   await signInAs();
-  await renderServer(
-    <AppShell>
-      <NotesPage />
-    </AppShell>,
-  );
+  await renderServer(<NotesPage />, { url: "/notes" });
 }
 
 test("renders Notes heading", async () => {
@@ -46,11 +41,7 @@ test("renders notes from the database", async () => {
   });
   const seededNotes = await db.select().from(notes);
 
-  await renderServer(
-    <AppShell>
-      <NotesPage />
-    </AppShell>,
-  );
+  await renderServer(<NotesPage />, { url: "/notes" });
 
   for (const note of seededNotes) {
     await expect.element(page.getByText(note.title)).toBeInTheDocument();
@@ -80,11 +71,7 @@ test("lists favorite notes before non-favorites", async () => {
     },
   ]);
 
-  await renderServer(
-    <AppShell>
-      <NotesPage />
-    </AppShell>,
-  );
+  await renderServer(<NotesPage />, { url: "/notes" });
 
   await expect.element(page.getByText("Newer favorite")).toBeInTheDocument();
   await expect
@@ -129,11 +116,7 @@ test("only renders notes owned by the current user", async () => {
     { ownerId: otherUser.id, title: "Not mine", content: "Hidden" },
   ]);
 
-  await renderServer(
-    <AppShell>
-      <NotesPage />
-    </AppShell>,
-  );
+  await renderServer(<NotesPage />, { url: "/notes" });
 
   await expect.element(page.getByText("Mine")).toBeInTheDocument();
   await expect.element(page.getByText("Not mine")).not.toBeInTheDocument();

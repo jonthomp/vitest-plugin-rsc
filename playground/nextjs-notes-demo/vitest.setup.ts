@@ -1,7 +1,6 @@
 import { vi, beforeAll, beforeEach, afterEach, inject } from "vitest";
 import { cleanup, initialize } from "vitest-plugin-rsc/nextjs/testing-library";
 import { page } from "vitest/browser";
-import { type ComponentPropsWithoutRef } from "react";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "#db/schema.ts";
@@ -49,18 +48,6 @@ vi.mock("#lib/auth.ts", () => ({
 }));
 vi.mock("#lib/auth-session.ts", () => import("#lib/auth-session.mock.ts"));
 vi.mock("#lib/flash-cookie.ts", () => import("#lib/flash-cookie.mock.ts"));
-vi.mock("#components/link.tsx", async () => {
-  const { createElement } = await import("react");
-
-  type LinkProps = Omit<ComponentPropsWithoutRef<"a">, "href"> & {
-    href: string | URL;
-  };
-
-  return {
-    Link: ({ href, children, ...props }: LinkProps) =>
-      createElement("a", { ...props, href: String(href) }, children),
-  };
-});
 vi.mock("next/font/google", () => ({
   Geist: () => ({ variable: "font-geist-sans" }),
   Geist_Mono: () => ({ variable: "font-geist-mono" }),
@@ -73,8 +60,8 @@ let base: PGlite;
 let pointerResetTarget: HTMLElement | undefined;
 
 // Vitest mounts React into an existing document, so rendering RootLayout's
-// <html>/<body> tags would be invalid. Page tests wrap routes in AppShell and
-// keep the matching document-level defaults here.
+// <html>/<body> tags would be invalid. Page tests use the app-local
+// renderServer helper and keep the matching document-level defaults here.
 function applyDocumentDefaults() {
   document.documentElement.lang = "en";
   document.documentElement.className = "antialiased";

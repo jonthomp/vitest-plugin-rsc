@@ -1,9 +1,8 @@
 import { expect, test, vi } from "vitest";
 import { page } from "vitest/browser";
-import { renderServer } from "vitest-plugin-rsc/nextjs/testing-library";
-import { AppShell } from "#app/layout.tsx";
 import { auth } from "#lib/auth.ts";
 import { signInAs, testUser } from "#test/auth.ts";
+import { renderServer } from "#test/render.tsx";
 import ProfilePage from "./page.tsx";
 
 const noSearchParams = Promise.resolve({});
@@ -11,11 +10,7 @@ const noSearchParams = Promise.resolve({});
 test("shows the empty passkeys hint when the user has none", async () => {
   await signInAs();
 
-  await renderServer(
-    <AppShell>
-      <ProfilePage searchParams={noSearchParams} />
-    </AppShell>,
-  );
+  await renderServer(<ProfilePage searchParams={noSearchParams} />, { url: "/profile" });
 
   await expect
     .element(page.getByRole("heading", { level: 1, name: "Profile" }))
@@ -29,11 +24,7 @@ test("shows the empty passkeys hint when the user has none", async () => {
 test("shows account email on profile", async () => {
   await signInAs();
 
-  await renderServer(
-    <AppShell>
-      <ProfilePage searchParams={noSearchParams} />
-    </AppShell>,
-  );
+  await renderServer(<ProfilePage searchParams={noSearchParams} />, { url: "/profile" });
 
   await expect.element(page.getByText(testUser.email)).toBeInTheDocument();
 });
@@ -41,11 +32,7 @@ test("shows account email on profile", async () => {
 test("renders a sign-out button", async () => {
   await signInAs();
 
-  await renderServer(
-    <AppShell>
-      <ProfilePage searchParams={noSearchParams} />
-    </AppShell>,
-  );
+  await renderServer(<ProfilePage searchParams={noSearchParams} />, { url: "/profile" });
 
   await expect.element(page.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
 });
@@ -79,11 +66,7 @@ test("lists existing passkeys with their creation dates", async () => {
     },
   ]);
 
-  await renderServer(
-    <AppShell>
-      <ProfilePage searchParams={noSearchParams} />
-    </AppShell>,
-  );
+  await renderServer(<ProfilePage searchParams={noSearchParams} />, { url: "/profile" });
 
   await expect.element(page.getByText("iPhone passkey")).toBeInTheDocument();
   await expect.element(page.getByText("Added Feb 14, 2026")).toBeInTheDocument();
@@ -95,11 +78,9 @@ test("lists existing passkeys with their creation dates", async () => {
 test("renders the passkey setup hero after first sign-in", async () => {
   await signInAs();
 
-  await renderServer(
-    <AppShell>
-      <ProfilePage searchParams={Promise.resolve({ setup: "passkey" })} />
-    </AppShell>,
-  );
+  await renderServer(<ProfilePage searchParams={Promise.resolve({ setup: "passkey" })} />, {
+    url: "/profile?setup=passkey",
+  });
 
   await expect
     .element(page.getByRole("heading", { level: 1, name: "Add a passkey" }))

@@ -1,15 +1,10 @@
 import { expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { renderServer } from "vitest-plugin-rsc/nextjs/testing-library";
-import { AppShell } from "#app/layout.tsx";
+import { renderServer } from "#test/render.tsx";
 import SignInPage from "./page.tsx";
 
 test("renders sign-in form with email, passkey, and link to sign up", async () => {
-  await renderServer(
-    <AppShell>
-      <SignInPage searchParams={Promise.resolve({})} />
-    </AppShell>,
-  );
+  await renderServer(<SignInPage searchParams={Promise.resolve({})} />, { url: "/auth/sign-in" });
 
   await expect
     .element(page.getByRole("heading", { level: 1, name: "Welcome" }))
@@ -27,11 +22,9 @@ test("renders sign-in form with email, passkey, and link to sign up", async () =
 });
 
 test("shows the magic link sent confirmation banner", async () => {
-  await renderServer(
-    <AppShell>
-      <SignInPage searchParams={Promise.resolve({ sent: "magic-link" })} />
-    </AppShell>,
-  );
+  await renderServer(<SignInPage searchParams={Promise.resolve({ sent: "magic-link" })} />, {
+    url: "/auth/sign-in?sent=magic-link",
+  });
 
   await expect
     .element(page.getByText("Check your inbox for the sign-in link."))
@@ -39,11 +32,9 @@ test("shows the magic link sent confirmation banner", async () => {
 });
 
 test("shows the magic link error banner", async () => {
-  await renderServer(
-    <AppShell>
-      <SignInPage searchParams={Promise.resolve({ error: "magic" })} />
-    </AppShell>,
-  );
+  await renderServer(<SignInPage searchParams={Promise.resolve({ error: "magic" })} />, {
+    url: "/auth/sign-in?error=magic",
+  });
 
   await expect
     .element(page.getByText("We couldn’t send your sign-in link. Please try again."))
@@ -51,11 +42,7 @@ test("shows the magic link error banner", async () => {
 });
 
 test("renders an inline error when the email is invalid", async () => {
-  await renderServer(
-    <AppShell>
-      <SignInPage searchParams={Promise.resolve({})} />
-    </AppShell>,
-  );
+  await renderServer(<SignInPage searchParams={Promise.resolve({})} />, { url: "/auth/sign-in" });
 
   await userEvent.fill(page.getByLabelText("Email"), "not-an-email");
   await userEvent.click(page.getByRole("button", { name: "Continue with email" }));

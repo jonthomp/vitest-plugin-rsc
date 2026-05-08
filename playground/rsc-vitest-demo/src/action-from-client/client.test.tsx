@@ -5,7 +5,7 @@ import { screen, waitFor } from "@testing-library/dom";
 import { userEvent } from "@testing-library/user-event";
 
 test("test use action state", async () => {
-  await renderServer(<TestUseActionState />, { rerenderOnServerAction: true });
+  await renderServer(<TestUseActionState />);
 
   await expect
     .element(await screen.findByTestId("use-action-state"))
@@ -27,7 +27,7 @@ test("test use action state", async () => {
 test("test use action state", async () => {
   vi.spyOn(console, "log");
 
-  await renderServer(<TestActionFromClient />, { rerenderOnServerAction: true });
+  await renderServer(<TestActionFromClient />);
 
   await userEvent.click(await screen.findByRole("button", { name: /test-action-from-client$/ }));
 

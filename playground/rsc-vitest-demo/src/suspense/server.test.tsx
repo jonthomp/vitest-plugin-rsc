@@ -5,9 +5,7 @@ import { TestSuspense } from "./server.tsx";
 import { screen } from "@testing-library/dom";
 
 test("suspense", async () => {
-  await renderServer(<TestSuspense />, {
-    rerenderOnServerAction: true,
-  });
+  await renderServer(<TestSuspense />);
 
   expect(await screen.findByTestId("suspense")).toHaveTextContent("suspense-fallback");
 

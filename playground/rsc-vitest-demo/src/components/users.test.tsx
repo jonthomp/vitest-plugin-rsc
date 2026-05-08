@@ -11,7 +11,7 @@ import { userEvent } from "@testing-library/user-event";
 test("save to db when clicked", async () => {
   msw.use(http.get(api("/users"), () => Response.json([{ id: 5, name: "some user" }])));
 
-  await renderServer(<Users />, { rerenderOnServerAction: true });
+  await renderServer(<Users />);
 
   expect(await getLikes(5)).toBe(0);
 

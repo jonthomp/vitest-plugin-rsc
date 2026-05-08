@@ -5,9 +5,7 @@ import { screen } from "@testing-library/dom";
 import { userEvent } from "@testing-library/user-event";
 
 test("use action state with jsx", async () => {
-  await renderServer(<TestActionStateServer />, {
-    rerenderOnServerAction: true,
-  });
+  await renderServer(<TestActionStateServer />);
 
   await userEvent.click(await screen.findByRole("button"));
 

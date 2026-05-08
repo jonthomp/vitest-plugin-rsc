@@ -67,6 +67,9 @@ export function vitestPluginRSC(): Plugin[] {
           environments: {
             client: {
               keepProcessEnv: false,
+              dev: {
+                preTransformRequests: false,
+              },
               resolve: {
                 conditions: ["browser", "react-server"],
               },

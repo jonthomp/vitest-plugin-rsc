@@ -24,7 +24,6 @@ export async function renderServer(
     container?: HTMLElement;
     baseElement?: HTMLElement;
     wrapper?: JSXElementConstructor<{ children: ReactNode }>;
-    rerenderOnServerAction?: boolean;
   } = {},
 ): Promise<{
   container: HTMLElement;

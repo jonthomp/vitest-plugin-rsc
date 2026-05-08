@@ -9,9 +9,7 @@ import { screen } from "@testing-library/dom";
 import { userEvent } from "@testing-library/user-event";
 
 test("test server action bind simple", async () => {
-  await renderServer(<TestServerActionBindSimple />, {
-    rerenderOnServerAction: true,
-  });
+  await renderServer(<TestServerActionBindSimple />);
 
   expect(await screen.findByTestId("test-server-action-bind-simple")).toHaveTextContent("[?]");
 
@@ -25,9 +23,7 @@ test("test server action bind simple", async () => {
 });
 
 test("server action bind client", async () => {
-  await renderServer(<TestServerActionBindClient />, {
-    rerenderOnServerAction: true,
-  });
+  await renderServer(<TestServerActionBindClient />);
 
   expect(await screen.findByTestId("test-server-action-bind-client")).toHaveTextContent("[?]");
 
@@ -41,9 +37,7 @@ test("server action bind client", async () => {
 });
 
 test("test server action bind action", async () => {
-  await renderServer(<TestServerActionBindAction />, {
-    rerenderOnServerAction: true,
-  });
+  await renderServer(<TestServerActionBindAction />);
 
   expect(await screen.findByTestId("test-server-action-bind-action")).toHaveTextContent("[?]");
 

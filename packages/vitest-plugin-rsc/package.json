@@ -23,12 +23,6 @@
     "dist"
   ],
   "type": "module",
-  "imports": {
-    "#navigation": {
-      "react-server": "./test/navigation.react-server.ts",
-      "default": "./test/navigation.ts"
-    }
-  },
   "exports": {
     "./package.json": "./package.json",
     "./dist/nextjs/navigation": {

@@ -5,7 +5,7 @@ import { screen } from "@testing-library/dom";
 import { userEvent } from "@testing-library/user-event";
 
 test("server action", async () => {
-  await renderServer(<ServerCounter />, { rerenderOnServerAction: true });
+  await renderServer(<ServerCounter />);
 
   await userEvent.click(await screen.findByRole("button", { name: "server-counter: 0" }));
   await userEvent.click(await screen.findByRole("button", { name: "server-counter: 1" }));

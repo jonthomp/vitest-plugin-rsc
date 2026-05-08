@@ -1,71 +1,74 @@
-'use client'
+"use client";
 
-import React from 'react'
-import { format, isToday } from 'date-fns'
-import marked from 'marked'
-import ClientSidebarNote from './sidebar-note'
-import { load } from 'cheerio'
+import React from "react";
+import { format, isToday } from "date-fns";
+import marked from "marked";
+import ClientSidebarNote from "./sidebar-note";
+import { load } from "cheerio";
+import type { Note } from "libs/notes";
 
-export default function NoteList({ notes, searchText }) {
+export default function NoteList({
+  notes,
+  searchText,
+}: {
+  notes: Array<Note | null | undefined>;
+  searchText: string | null;
+}) {
   if (notes.length === 0) {
     return (
       <div className="notes-empty">
         {searchText
           ? `Couldn't find any notes titled "${searchText}".`
-          : 'No notes created yet!'}{' '}
+          : "No notes created yet!"}{" "}
       </div>
-    )
+    );
   }
 
   return (
     <ul className="notes-list">
       {notes.map((note) =>
-        note &&
-        (!searchText ||
-          note.title.toLowerCase().includes(searchText.toLowerCase())) ? (
+        note && (!searchText || note.title.toLowerCase().includes(searchText.toLowerCase())) ? (
           <li key={note.id}>
             <SidebarNote note={note} />
           </li>
-        ) : null
+        ) : null,
       )}
     </ul>
-  )
+  );
 }
 
-function excerpts(html, length) {
+function excerpts(html: string, length: number) {
   const text = load(html)
     .text()
     .trim()
-    .replace(/(\r\n|\r|\n|\s)+/g, ' ')
+    .replace(/(\r\n|\r|\n|\s)+/g, " ");
 
-  let excerpt = ''
+  let excerpt = "";
   if (length) {
-    excerpt = text.split(' ').slice(0, length).join(' ')
+    excerpt = text.split(" ").slice(0, length).join(" ");
   }
-  if (excerpt.length < text.length) excerpt += '...'
+  if (excerpt.length < text.length) excerpt += "...";
 
-  return excerpt
+  return excerpt;
 }
 
-function SidebarNote({ note }) {
-  const updatedAt = new Date(note.updated_at)
+function SidebarNote({ note }: { note: Note }) {
+  const updatedAt = new Date(note.updated_at);
   const lastUpdatedAt = isToday(updatedAt)
-    ? format(updatedAt, 'h:mm bb')
-    : format(updatedAt, 'M/d/yy')
-  const summary = excerpts(marked(note.body || ''), 20)
+    ? format(updatedAt, "h:mm bb")
+    : format(updatedAt, "M/d/yy");
+  const summary = excerpts(marked(note.body || ""), 20);
 
   return (
     <ClientSidebarNote
       id={note.id}
       title={note.title}
-      expandedChildren={
-        <p className="sidebar-note-excerpt">{summary || <i>(No content)</i>}</p>
-      }
+      expandedChildren={<p className="sidebar-note-excerpt">{summary || <i>(No content)</i>}</p>}
     >
       <header className="sidebar-note-header">
         <strong>{note.title}</strong>
         <small>{lastUpdatedAt}</small>
       </header>
     </ClientSidebarNote>
-  )
+  );
 }

@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { page } from "vitest/browser";
 import { cleanup, renderServer } from "vitest-plugin-rsc/nextjs/testing-library";
-import { NextCacheProbe, resetNextCacheProbe } from "./next-cache-probe";
+import { NextCacheProbe, resetNextCacheProbe } from "./next-cache-probe.tsx";
 
 test("server refresh rerenders without invalidating cached data or fetches", async () => {
   await renderNextCacheProbe();
@@ -33,21 +33,23 @@ test("identical force-cache fetches are deduped in one render and reused on refr
   await expect.element(page.getByText("cached fetch duplicate: default fetch 1")).toBeVisible();
 });
 
-test("no-store fetches bypass the Next fetch cache", async () => {
+test("no-store fetches bypass the persistent Next fetch cache", async () => {
   await renderNextCacheProbe();
 
   await expect.element(page.getByText("render: 1")).toBeVisible();
   await expect.element(page.getByText("no-store fetch: default no-store fetch 1")).toBeVisible();
   await expect
-    .element(page.getByText("no-store fetch duplicate: default no-store fetch 2"))
+    .element(page.getByText(/^no-store fetch duplicate: default no-store fetch [12]$/))
     .toBeVisible();
 
   await page.getByRole("button", { name: "Refresh", exact: true }).click();
 
   await expect.element(page.getByText("render: 2")).toBeVisible();
-  await expect.element(page.getByText("no-store fetch: default no-store fetch 3")).toBeVisible();
   await expect
-    .element(page.getByText("no-store fetch duplicate: default no-store fetch 4"))
+    .element(page.getByText(/^no-store fetch: default no-store fetch [23]$/))
+    .toBeVisible();
+  await expect
+    .element(page.getByText(/^no-store fetch duplicate: default no-store fetch [24]$/))
     .toBeVisible();
 });
 

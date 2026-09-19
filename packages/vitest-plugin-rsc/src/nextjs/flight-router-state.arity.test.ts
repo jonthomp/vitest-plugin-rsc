@@ -19,10 +19,20 @@ const stub = vi.hoisted(() => {
   };
 });
 
-vi.mock(
-  "next/dist/server/app-render/create-flight-router-state-from-loader-tree.js",
-  () => ({ createFlightRouterStateFromLoaderTree: stub.fn }),
-);
+vi.mock("next/dist/server/app-render/create-flight-router-state-from-loader-tree.js", () => ({
+  createFlightRouterStateFromLoaderTree: stub.fn,
+}));
+
+// Simulate the transport-tree pipeline being unavailable (Next 16.3.x and
+// earlier) regardless of which Next version is actually installed for this
+// test run, so these arity-dispatch cases stay meaningful even when run
+// against a real Next 16.4+ install that does have the modules below.
+vi.mock("next/dist/server/app-render/create-transport-tree-from-loader-tree.js", () => {
+  throw new Error("simulated: module not present on this Next version");
+});
+vi.mock("next/dist/shared/lib/rsc-transport.js", () => {
+  throw new Error("simulated: module not present on this Next version");
+});
 
 const { buildFlightRouterStateWithNext } = await import("./flight-router-state.ts");
 

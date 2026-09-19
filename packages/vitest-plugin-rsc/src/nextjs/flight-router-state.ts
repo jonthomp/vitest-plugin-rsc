@@ -1,5 +1,4 @@
 import type { FlightRouterState } from "next/dist/shared/lib/app-router-types";
-import { createFlightRouterStateFromLoaderTree } from "next/dist/server/app-render/create-flight-router-state-from-loader-tree.js";
 import { dynamicParamTypes } from "next/dist/server/app-render/get-short-dynamic-param-type.js";
 import { getDynamicParam } from "next/dist/shared/lib/router/utils/get-dynamic-param.js";
 import {
@@ -7,6 +6,10 @@ import {
   isCatchAll,
 } from "next/dist/shared/lib/router/utils/get-segment-param.js";
 import { PAGE_SEGMENT_KEY } from "next/dist/shared/lib/segment.js";
+
+type GetDynamicParamFromSegment = (
+  segmentOrLoaderTree: string | [segment: string, ...rest: unknown[]],
+) => unknown;
 
 const CHILDREN_PARALLEL_ROUTE_KEY = "children";
 type DynamicParamType = keyof typeof dynamicParamTypes;
@@ -30,29 +33,95 @@ export async function buildFlightRouterStateWithNext(
 ): Promise<FlightRouterState> {
   assertPatternMatchesPath(routePattern, pathname);
 
-  // Reuse Next's exported loader-tree -> FlightRouterState function. We only
-  // synthesize the minimal loader tree because component tests start from a
-  // route pattern, not Next's next-app-loader output:
-  // https://github.com/vercel/next.js/blob/4588a7354283f97e2124e3d82f55733ca4eb9373/packages/next/src/server/app-render/create-flight-router-state-from-loader-tree.ts
-  //
-  // Version split:
-  // - Next 16.0.x and 16.1.x expose the 3-argument signature:
-  //   (loaderTree, getDynamicParamFromSegment, searchParams). Their dynamic
-  //   param callback receives the current segment string.
-  // - Next 16.2.x exposes the 4-argument signature:
-  //   (loaderTree, hintTree, getDynamicParamFromSegment, searchParams). Its
-  //   dynamic param callback receives the current loader-tree node. Component
-  //   tests do not have build-time prefetch hints, so the hint tree is `null`.
-  // - Next 16.3 canary expands that 4-argument shape with prefetch/cache
-  //   booleans before the dynamic param callback. Component tests synthesize a
-  //   dynamic per-test tree, so those build/runtime prerender switches are
-  //   `false`.
-  // - Next 16.3.x adds one more positional boolean before the dynamic param
-  //   callback (9 arguments total), following the same "no prerender switches
-  //   during component tests" rationale.
+  // We only synthesize the minimal loader tree because component tests start
+  // from a route pattern, not Next's next-app-loader output.
   const loaderTree = createLoaderTree(routePattern, PAGE_SEGMENT_KEY);
   const getDynamicParamFromSegment = createGetDynamicParamFromSegment(routePattern, pathname);
   const searchParams = Object.fromEntries(new URLSearchParams(search));
+
+  const transportTreeState = await buildFlightRouterStateFromTransportTree(
+    loaderTree,
+    getDynamicParamFromSegment,
+    searchParams,
+  );
+  if (transportTreeState) return transportTreeState;
+
+  return buildFlightRouterStateFromLoaderTree(loaderTree, getDynamicParamFromSegment, searchParams);
+}
+
+// Next 16.4 canary removed create-flight-router-state-from-loader-tree.js and
+// replaced it with a two-step pipeline: build a structure-only "transport
+// tree" from the loader tree, then derive a FlightRouterState from that tree.
+// The transport tree's node shape and the resulting FlightRouterState both
+// differ from the removed helper's output (e.g. index 4 is now a
+// `prefetchHints` bitmask instead of an `isRootLayout` boolean), so this is
+// feature-detected via dynamic import rather than folded into the arity
+// dispatch below:
+// https://github.com/vercel/next.js/blob/canary/packages/next/src/server/app-render/create-transport-tree-from-loader-tree.ts
+// https://github.com/vercel/next.js/blob/canary/packages/next/src/shared/lib/rsc-transport.ts
+async function buildFlightRouterStateFromTransportTree(
+  loaderTree: unknown,
+  getDynamicParamFromSegment: GetDynamicParamFromSegment,
+  searchParams: Record<string, string>,
+): Promise<FlightRouterState | undefined> {
+  let createFullTransportTreeFromLoaderTree: CreateFullTransportTreeFromLoaderTree;
+  let transportNodeToFlightRouterState: (node: unknown) => FlightRouterState;
+  try {
+    // Import via a non-literal specifier: Next 16.3.x and earlier don't ship
+    // this module, and a literal specifier would make TypeScript require type
+    // declarations for it at build time against whichever Next version is
+    // currently installed.
+    const createTransportTreeModule =
+      "next/dist/server/app-render/create-transport-tree-from-loader-tree.js";
+    const rscTransportModule = "next/dist/shared/lib/rsc-transport.js";
+    ({ createFullTransportTreeFromLoaderTree } = await import(createTransportTreeModule));
+    ({ transportNodeToFlightRouterState } = await import(rscTransportModule));
+  } catch {
+    // Module doesn't exist on this Next version (16.3.x and earlier): fall
+    // back to the loader-tree helper below.
+    return undefined;
+  }
+
+  const node = await createFullTransportTreeFromLoaderTree(
+    loaderTree,
+    null, // hintTree: component tests have no build-time prefetch hints.
+    false, // prefetchInliningEnabled
+    "none", // missingPrefetchHintPolicy
+    false, // partialPrefetching
+    getDynamicParamFromSegment,
+    searchParams,
+  );
+  return transportNodeToFlightRouterState(node);
+}
+
+type CreateFullTransportTreeFromLoaderTree = (...args: unknown[]) => Promise<unknown>;
+
+// Reuse Next's exported loader-tree -> FlightRouterState function. Removed in
+// Next 16.4 canary in favor of the transport-tree pipeline above:
+// https://github.com/vercel/next.js/blob/4588a7354283f97e2124e3d82f55733ca4eb9373/packages/next/src/server/app-render/create-flight-router-state-from-loader-tree.ts
+//
+// Version split:
+// - Next 16.0.x and 16.1.x expose the 3-argument signature:
+//   (loaderTree, getDynamicParamFromSegment, searchParams). Their dynamic
+//   param callback receives the current segment string.
+// - Next 16.2.x exposes the 4-argument signature:
+//   (loaderTree, hintTree, getDynamicParamFromSegment, searchParams). Its
+//   dynamic param callback receives the current loader-tree node. Component
+//   tests do not have build-time prefetch hints, so the hint tree is `null`.
+// - Next 16.3 canary expands that 4-argument shape with prefetch/cache
+//   booleans before the dynamic param callback. Component tests synthesize a
+//   dynamic per-test tree, so those build/runtime prerender switches are
+//   `false`.
+// - Next 16.3.x adds one more positional boolean before the dynamic param
+//   callback (9 arguments total), following the same "no prerender switches
+//   during component tests" rationale.
+async function buildFlightRouterStateFromLoaderTree(
+  loaderTree: unknown,
+  getDynamicParamFromSegment: GetDynamicParamFromSegment,
+  searchParams: Record<string, string>,
+): Promise<FlightRouterState> {
+  const { createFlightRouterStateFromLoaderTree } =
+    await import("next/dist/server/app-render/create-flight-router-state-from-loader-tree.js");
   const createFlightRouterState =
     createFlightRouterStateFromLoaderTree as unknown as CreateFlightRouterStateFromLoaderTree;
 

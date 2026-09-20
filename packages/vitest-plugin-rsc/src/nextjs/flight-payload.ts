@@ -8,6 +8,11 @@ import type {
 import type { ReactNode } from "react";
 import { buildFlightRouterStateWithNext } from "./flight-router-state.ts";
 import { createSeedDataFromFlightRouterState } from "./flight-seed-data.ts";
+import {
+  createTransportDataFromFlightRouterState,
+  type TransportData,
+  type WithTransportData,
+} from "./flight-transport-data.ts";
 import { findNextRouterElement, type NextRouterElementProps } from "./router-element.ts";
 
 export async function createNextRouteResponse(
@@ -15,7 +20,7 @@ export async function createNextRouteResponse(
   url: string,
   routerState?: string | null,
   couldBeIntercepted = false,
-): Promise<NavigationFlightResponse> {
+): Promise<WithTransportData<NavigationFlightResponse>> {
   const location = urlToUrlWithoutFlightMarker(new URL(url));
   const rootFlightData = await createRootNavigationFlightData(root, {
     url: location,
@@ -30,9 +35,12 @@ export async function createNextRouteResponse(
   // Source: https://github.com/vercel/next.js/blob/4588a7354283f97e2124e3d82f55733ca4eb9373/packages/next/src/shared/lib/app-router-types.ts#L365-L393
   // Adaptation: component tests build only the root patch that their test
   // router can model.
-  const response: NavigationFlightResponse = {
+  // Source (Next 16.4 `t` field): https://github.com/vercel/next.js/blob/d7a8d015cef21ed6fdda8a009bd0bb17135f8628/packages/next/src/shared/lib/app-router-types.ts#L471-L491
+  // Version split: see WithTransportData.
+  const response: WithTransportData<NavigationFlightResponse> = {
     b: "",
-    f: [rootFlightData],
+    f: [rootFlightData.flightDataPath],
+    t: rootFlightData.transportData,
     q: location.search,
     i: couldBeIntercepted,
     S: false,
@@ -48,7 +56,7 @@ export async function createNextActionResponse(
   shouldRender: boolean,
   routerState?: string | null,
   couldBeIntercepted = false,
-): Promise<ActionFlightResponse> {
+): Promise<WithTransportData<ActionFlightResponse>> {
   const actionResult = Promise.resolve(returnValue);
   if (!shouldRender) {
     // Begin copy: Next.js ActionFlightResponse skipped page rendering shape
@@ -88,10 +96,13 @@ export async function createNextActionResponse(
   // Begin copy: Next.js ActionFlightResponse payload shape
   // Source: https://github.com/vercel/next.js/blob/4588a7354283f97e2124e3d82f55733ca4eb9373/packages/next/src/server/app-render/app-render.tsx#L749-L758
   // Source: https://github.com/vercel/next.js/blob/4588a7354283f97e2124e3d82f55733ca4eb9373/packages/next/src/client/components/router-reducer/reducers/server-action-reducer.ts#L246-L299
-  const response: ActionFlightResponse = {
+  // Source (Next 16.4 `t` field): https://github.com/vercel/next.js/blob/d7a8d015cef21ed6fdda8a009bd0bb17135f8628/packages/next/src/shared/lib/app-router-types.ts#L660-L669
+  // Version split: see WithTransportData.
+  const response: WithTransportData<ActionFlightResponse> = {
     b: "",
     a: actionResult,
-    f: [rootFlightData],
+    f: [rootFlightData.flightDataPath],
+    t: rootFlightData.transportData,
     q: location.search,
     i: couldBeIntercepted,
   };
@@ -108,7 +119,7 @@ async function createRootNavigationFlightData(
     url: URL;
     routerState?: string | null;
   },
-): Promise<FlightDataPath | undefined> {
+): Promise<{ flightDataPath: FlightDataPath; transportData: TransportData } | undefined> {
   const nextRouter = findNextRouterElement(root);
   if (!nextRouter) return;
 
@@ -124,5 +135,8 @@ async function createRootNavigationFlightData(
   // Source: https://github.com/vercel/next.js/blob/4588a7354283f97e2124e3d82f55733ca4eb9373/packages/next/src/shared/lib/app-router-types.ts#L286-L302
   const flightDataPath = [tree, seedData, null, false] satisfies FlightDataPath;
   // End copy
-  return flightDataPath;
+  return {
+    flightDataPath,
+    transportData: createTransportDataFromFlightRouterState(tree, props.children),
+  };
 }

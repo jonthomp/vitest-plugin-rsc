@@ -100,6 +100,19 @@ function tryResolveFromProject(root: string, id: string): string | undefined {
   }
 }
 
+function resolveVersionDependentNextModules(root: string): string[] {
+  // Next moves these internals between minors: 16.4 dropped ppr-navigations.js
+  // and replaced create-flight-router-state-from-loader-tree.js with the
+  // transport-tree pipeline. Only pre-bundle what the installed Next ships, so
+  // Vite does not warn about (or fail on) modules that are not there.
+  return [
+    "next/dist/client/components/router-reducer/ppr-navigations.js",
+    "next/dist/server/app-render/create-flight-router-state-from-loader-tree.js",
+    "next/dist/server/app-render/create-transport-tree-from-loader-tree.js",
+    "next/dist/shared/lib/rsc-transport.js",
+  ].filter((id) => tryResolveFromProject(root, id));
+}
+
 function createNextEdgeNativeAliases(root: string): Alias[] {
   // Next's edge/client webpack builds polyfill these Node builtins with
   // Next-compiled browser packages. Vite does not run that webpack layer, so
@@ -307,6 +320,7 @@ export function vitestPluginNext(): Plugin[] {
         const rscAppRouterAliases = createAppRouterApiAliasesFromNext(root, true);
         const reactClientAppRouterAliases = createAppRouterApiAliasesFromNext(root, false);
         const reactServerDomWebpackAliases = createReactServerDomWebpackAliases(root);
+        const versionDependentNextModules = resolveVersionDependentNextModules(root);
 
         return {
           define: {
@@ -379,7 +393,6 @@ export function vitestPluginNext(): Plugin[] {
                   "next/dist/client/components/router-reducer/compute-changed-path.js",
                   "next/dist/client/components/router-reducer/create-href-from-url.js",
                   "next/dist/client/components/router-reducer/create-initial-router-state.js",
-                  "next/dist/client/components/router-reducer/ppr-navigations.js",
                   "next/dist/client/components/router-reducer/router-reducer.js",
                   "next/dist/client/components/router-reducer/router-reducer-types.js",
                   "next/dist/client/components/router-reducer/reducers/server-action-reducer.js",
@@ -393,7 +406,7 @@ export function vitestPluginNext(): Plugin[] {
                   "next/dist/client/flight-data-helpers.js",
                   "next/dist/server/lib/server-action-request-meta.js",
                   "next/dist/client/components/use-action-queue.js",
-                  "next/dist/server/app-render/create-flight-router-state-from-loader-tree.js",
+                  ...versionDependentNextModules,
                   "next/dist/server/app-render/get-short-dynamic-param-type.js",
                   "next/dist/server/app-render/parse-and-validate-flight-router-state.js",
                   "next/dist/server/request/draft-mode.js",
@@ -453,7 +466,6 @@ export function vitestPluginNext(): Plugin[] {
                   "next/dist/client/components/router-reducer/compute-changed-path.js",
                   "next/dist/client/components/router-reducer/create-href-from-url.js",
                   "next/dist/client/components/router-reducer/create-initial-router-state.js",
-                  "next/dist/client/components/router-reducer/ppr-navigations.js",
                   "next/dist/client/components/router-reducer/router-reducer.js",
                   "next/dist/client/components/router-reducer/router-reducer-types.js",
                   "next/dist/client/components/router-reducer/reducers/server-action-reducer.js",
@@ -467,7 +479,7 @@ export function vitestPluginNext(): Plugin[] {
                   "next/dist/client/flight-data-helpers.js",
                   "next/dist/server/lib/server-action-request-meta.js",
                   "next/dist/client/components/use-action-queue.js",
-                  "next/dist/server/app-render/create-flight-router-state-from-loader-tree.js",
+                  ...versionDependentNextModules,
                   "next/dist/server/app-render/get-short-dynamic-param-type.js",
                   "next/dist/server/app-render/parse-and-validate-flight-router-state.js",
                   "next/dist/shared/lib/segment.js",

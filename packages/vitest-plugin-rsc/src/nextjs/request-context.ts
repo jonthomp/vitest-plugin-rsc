@@ -320,7 +320,25 @@ function createNextEdgeIncrementalCache(
     throw new Error("Invariant: Next IncrementalCache was not loaded.");
   }
 
-  return new IncrementalCache({
+  const createPrerenderManifest = () => ({
+    version: 4 as const,
+    routes: {},
+    dynamicRoutes: {},
+    notFoundRoutes: [],
+    preview: {
+      previewModeId: "vitest-plugin-rsc",
+      previewModeSigningKey: "vitest-plugin-rsc",
+      previewModeEncryptionKey: "vitest-plugin-rsc",
+    },
+  });
+  const prerenderManifest = createPrerenderManifest();
+
+  // Version split: Next 16.4 replaced the `getPrerenderManifest` callback with direct
+  // `prerenderManifest` and `previewProps` options. The constructor destructures
+  // its options, so passing both shapes keeps every supported Next minor working.
+  // Declared outside the call so the shape unused by the installed Next types is
+  // not flagged as an excess property.
+  const incrementalCacheOptions = {
     fs: {} as never,
     dev: false,
     requestHeaders: {},
@@ -329,16 +347,10 @@ function createNextEdgeIncrementalCache(
     serverDistDir: "/",
     maxMemoryCacheSize: 50 * 1024 * 1024,
     flushToDisk: false,
-    getPrerenderManifest: () => ({
-      version: 4,
-      routes: {},
-      dynamicRoutes: {},
-      notFoundRoutes: [],
-      preview: {
-        previewModeId: "vitest-plugin-rsc",
-        previewModeSigningKey: "vitest-plugin-rsc",
-        previewModeEncryptionKey: "vitest-plugin-rsc",
-      },
-    }),
-  });
+    getPrerenderManifest: createPrerenderManifest,
+    prerenderManifest,
+    previewProps: prerenderManifest.preview,
+  };
+
+  return new IncrementalCache(incrementalCacheOptions);
 }

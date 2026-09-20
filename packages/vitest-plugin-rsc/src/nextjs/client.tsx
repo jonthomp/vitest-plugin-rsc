@@ -25,6 +25,10 @@ import type {
   InitialRSCPayload,
 } from "next/dist/shared/lib/app-router-types";
 import React, { type ReactNode, useMemo, useRef } from "react";
+import {
+  createTransportDataFromFlightRouterState,
+  type WithTransportData,
+} from "./flight-transport-data.ts";
 
 // This test router is a small adapter around Next's App Router internals. Keep
 // copied control flow aligned with Next rather than growing a parallel router:
@@ -162,16 +166,19 @@ function createInitialRSCPayload(props: {
   initialTree: FlightRouterState;
   renderedSearch: string;
   seedData: CacheNodeSeedData;
-}): InitialRSCPayload {
+}): WithTransportData<InitialRSCPayload> {
   // Begin copy: Next.js InitialRSCPayload shape
   // Source: https://github.com/vercel/next.js/blob/4588a7354283f97e2124e3d82f55733ca4eb9373/packages/next/src/server/app-render/app-render.tsx#L2221-L2260
   // Adaptation: component tests provide the root seed data directly instead of
   // running Next's full app-render request pipeline.
+  // Source (Next 16.4 `t` field): https://github.com/vercel/next.js/blob/d7a8d015cef21ed6fdda8a009bd0bb17135f8628/packages/next/src/shared/lib/app-router-types.ts#L387-L397
+  // Version split: see WithTransportData.
   return {
     c: props.canonicalUrl.split("/"),
     q: props.renderedSearch,
     i: false,
     f: [[props.initialTree, props.seedData, null, false] satisfies FlightDataPath],
+    t: createTransportDataFromFlightRouterState(props.initialTree, props.seedData[0]),
     m: undefined,
     G: [GlobalError, null],
     S: false,

@@ -39,14 +39,19 @@ export async function buildFlightRouterStateWithNext(
   const getDynamicParamFromSegment = createGetDynamicParamFromSegment(routePattern, pathname);
   const searchParams = Object.fromEntries(new URLSearchParams(search));
 
-  const transportTreeState = await buildFlightRouterStateFromTransportTree(
+  const transportTree = await buildFlightRouterStateFromTransportTree(
     loaderTree,
     getDynamicParamFromSegment,
     searchParams,
   );
-  if (transportTreeState) return transportTreeState;
+  if ("state" in transportTree) return transportTree.state;
 
-  return buildFlightRouterStateFromLoaderTree(loaderTree, getDynamicParamFromSegment, searchParams);
+  return buildFlightRouterStateFromLoaderTree(
+    loaderTree,
+    getDynamicParamFromSegment,
+    searchParams,
+    transportTree.importError,
+  );
 }
 
 // Next 16.4 canary removed create-flight-router-state-from-loader-tree.js and
@@ -63,23 +68,28 @@ async function buildFlightRouterStateFromTransportTree(
   loaderTree: unknown,
   getDynamicParamFromSegment: GetDynamicParamFromSegment,
   searchParams: Record<string, string>,
-): Promise<FlightRouterState | undefined> {
+): Promise<{ state: FlightRouterState } | { importError: unknown }> {
   let createFullTransportTreeFromLoaderTree: CreateFullTransportTreeFromLoaderTree;
   let transportNodeToFlightRouterState: (node: unknown) => FlightRouterState;
   try {
-    // Import via a non-literal specifier: Next 16.3.x and earlier don't ship
-    // this module, and a literal specifier would make TypeScript require type
-    // declarations for it at build time against whichever Next version is
-    // currently installed.
-    const createTransportTreeModule =
-      "next/dist/server/app-render/create-transport-tree-from-loader-tree.js";
-    const rscTransportModule = "next/dist/shared/lib/rsc-transport.js";
-    ({ createFullTransportTreeFromLoaderTree } = await import(createTransportTreeModule));
-    ({ transportNodeToFlightRouterState } = await import(rscTransportModule));
-  } catch {
+    // Literal specifiers, because Vite cannot analyze a variable `import()` in
+    // browser projects. Next 16.3.x and earlier don't ship these modules. `next`
+    // is an optional peer dependency of this package, so Vite resolves the
+    // missing subpath to a stub that throws on import instead of failing the
+    // transform; plain Node rejects the import. Both land in the catch below.
+    // `@ts-ignore` instead of `@ts-expect-error` because the declarations only
+    // exist on Next 16.4+.
+    ({ createFullTransportTreeFromLoaderTree } =
+      // @ts-ignore
+      await import("next/dist/server/app-render/create-transport-tree-from-loader-tree.js"));
+    ({ transportNodeToFlightRouterState } =
+      // @ts-ignore
+      await import("next/dist/shared/lib/rsc-transport.js"));
+  } catch (importError) {
     // Module doesn't exist on this Next version (16.3.x and earlier): fall
-    // back to the loader-tree helper below.
-    return undefined;
+    // back to the loader-tree helper below. The error is kept because on Next
+    // 16.4+ that helper is gone, and then this one is the real failure.
+    return { importError };
   }
 
   const node = await createFullTransportTreeFromLoaderTree(
@@ -91,7 +101,7 @@ async function buildFlightRouterStateFromTransportTree(
     getDynamicParamFromSegment,
     searchParams,
   );
-  return transportNodeToFlightRouterState(node);
+  return { state: transportNodeToFlightRouterState(node) };
 }
 
 type CreateFullTransportTreeFromLoaderTree = (...args: unknown[]) => Promise<unknown>;
@@ -119,9 +129,24 @@ async function buildFlightRouterStateFromLoaderTree(
   loaderTree: unknown,
   getDynamicParamFromSegment: GetDynamicParamFromSegment,
   searchParams: Record<string, string>,
+  transportTreeImportError: unknown,
 ): Promise<FlightRouterState> {
   const { createFlightRouterStateFromLoaderTree } =
-    await import("next/dist/server/app-render/create-flight-router-state-from-loader-tree.js");
+    await import("next/dist/server/app-render/create-flight-router-state-from-loader-tree.js").catch(
+      (loaderTreeImportError: unknown) => {
+        // Every supported Next ships one of the two pipelines. On Next 16.4+
+        // this helper is gone, so the transport-tree import error is the real
+        // failure: name it instead of only reporting the missing helper.
+        const reason =
+          transportTreeImportError instanceof Error
+            ? transportTreeImportError.message
+            : String(transportTreeImportError);
+        throw new AggregateError(
+          [transportTreeImportError, loaderTreeImportError],
+          `Could not load Next's router state helpers. The Next 16.4 transport-tree pipeline failed to load (${reason}), and the pre-16.4 loader-tree helper is missing.`,
+        );
+      },
+    );
   const createFlightRouterState =
     createFlightRouterStateFromLoaderTree as unknown as CreateFlightRouterStateFromLoaderTree;
 

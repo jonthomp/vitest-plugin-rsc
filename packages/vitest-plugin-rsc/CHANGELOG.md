@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.4](https://github.com/storybookjs/vitest-plugin-rsc/compare/v0.2.3...v0.2.4) (2026-09-20)
+
+
+### Bug Fixes
+
+* support Next 16.3.x loader-tree signature ([46224d3](https://github.com/storybookjs/vitest-plugin-rsc/commit/46224d3def0f24205a495dd5baeee4f816376de0))
+* support Next 16.3.x loader-tree signature ([f7e5579](https://github.com/storybookjs/vitest-plugin-rsc/commit/f7e5579d7dcc2b2e31a429a7f2894ec18916ec04))
+* support Next 16.4 canary's transport-tree loader-tree API ([5d84a21](https://github.com/storybookjs/vitest-plugin-rsc/commit/5d84a2135bd79906974be25646c3e53570ad7342))
+
 ## [0.2.3](https://github.com/storybookjs/vitest-plugin-rsc/compare/v0.2.2...v0.2.3) (2026-05-16)
 
 

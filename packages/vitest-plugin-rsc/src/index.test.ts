@@ -1,5 +1,5 @@
 import { createServer, type Server } from "node:net";
-import type { Plugin, ViteDevServer } from "vite";
+import { resolveConfig, type Plugin, type ViteDevServer } from "vite";
 import { afterEach, expect, test } from "vitest";
 import { vitestPluginRSC } from "./index.ts";
 
@@ -43,6 +43,30 @@ test("does not hide non-port listen failures", async () => {
     code: "ENOTFOUND",
   });
   expect(server.config.server.port).toBe(0);
+});
+
+test("keeps react_client pre-bundling when Vitest disables the optimizer of other environments", async () => {
+  // Mirrors Vitest 5's vitest:environments-module-runner plugin, which in
+  // browser mode only leaves the `client` environment's optimizeDeps alone.
+  const vitestLikePlugin: Plugin = {
+    name: "vitest-like",
+    configEnvironment: {
+      order: "post",
+      handler(name, config) {
+        if (name !== "client") config.optimizeDeps = { noDiscovery: true, include: [] };
+      },
+    },
+  };
+
+  const config = await resolveConfig(
+    { configFile: false, logLevel: "silent", plugins: [vitestPluginRSC(), vitestLikePlugin] },
+    "serve",
+  );
+
+  expect(config.environments.react_client!.optimizeDeps).toMatchObject({
+    noDiscovery: false,
+    include: expect.arrayContaining(["react", "react-dom/client", "react/jsx-runtime"]),
+  });
 });
 
 function getPlugin(name: string): Plugin {

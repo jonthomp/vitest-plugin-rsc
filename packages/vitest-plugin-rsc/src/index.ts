@@ -1,5 +1,5 @@
 import { createServer } from "node:net";
-import { type Plugin, type ViteDevServer } from "vite";
+import { type EnvironmentOptions, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginRscMinimal } from "@vitejs/plugin-rsc/plugin";
 import { createReactClientCoveragePlugin } from "./coverage.ts";
 
@@ -148,6 +148,37 @@ export function vitestPluginRSC(): Plugin[] {
       },
     },
     createReactClientCoveragePlugin(),
+    ...createReactClientOptimizeDepsPlugins(),
+  ];
+}
+
+// Vitest 5 runs browser tests on the project's Vite server. Its post
+// configEnvironment hook swaps the optimizeDeps of every environment except
+// `client` for a disabled optimizer, which would leave react_client serving
+// CommonJS deps like react raw to the browser. Capture the plugin/user config
+// before Vitest runs and put it back after.
+function createReactClientOptimizeDepsPlugins(): Plugin[] {
+  let optimizeDeps: EnvironmentOptions["optimizeDeps"];
+  return [
+    {
+      name: "rsc:react-client-optimize-deps:capture",
+      configEnvironment: {
+        order: "pre",
+        handler(name, config) {
+          if (name === "react_client") optimizeDeps = config.optimizeDeps;
+        },
+      },
+    },
+    {
+      name: "rsc:react-client-optimize-deps:restore",
+      enforce: "post",
+      configEnvironment: {
+        order: "post",
+        handler(name, config) {
+          if (name === "react_client" && optimizeDeps) config.optimizeDeps = optimizeDeps;
+        },
+      },
+    },
   ];
 }
 

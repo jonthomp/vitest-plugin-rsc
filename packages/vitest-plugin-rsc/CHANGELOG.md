@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.5](https://github.com/storybookjs/vitest-plugin-rsc/compare/v0.2.4...v0.2.5) (2026-09-28)
+
+
+### Bug Fixes
+
+* capture react_client optimizeDeps after normal configEnvironment hooks ([e1a430b](https://github.com/storybookjs/vitest-plugin-rsc/commit/e1a430bfc4cc706af760034eef1117f9ea6265db))
+* copy client optimizer entries to react_client in configureServer ([89e72ce](https://github.com/storybookjs/vitest-plugin-rsc/commit/89e72ce6d4f3254ce22c0edc06fd6e865cfbf8cc))
+* drop unused @vitest/expect and loosen runtime dependency ranges ([d41ed21](https://github.com/storybookjs/vitest-plugin-rsc/commit/d41ed213e01f1a2815292ce42cc4474446b343a2))
+* keep @vitejs/plugin-rsc on 0.5.26 ([231806d](https://github.com/storybookjs/vitest-plugin-rsc/commit/231806d9b2ce69ab4888578a004ebabe1e2c6848))
+* keep react_client pre-bundling on Vitest 5's shared browser server ([9785d49](https://github.com/storybookjs/vitest-plugin-rsc/commit/9785d49ae6d3e92d3912e0371e0cdfac56677d36))
+* support Next 16.4 canary RSC payloads and IncrementalCache options ([411f5b7](https://github.com/storybookjs/vitest-plugin-rsc/commit/411f5b70b22e97393f0c5ea10bfe52d2878fc307))
+* support Next 16.4 canary RSC payloads and IncrementalCache options ([81b4874](https://github.com/storybookjs/vitest-plugin-rsc/commit/81b4874d83dc2e7b81615d8759782c95a2d2d1af))
+* support Vitest 5.0.2 shared browser server; upgrade to Vite 8.3.1 and Vitest 5.0.2 ([32573c9](https://github.com/storybookjs/vitest-plugin-rsc/commit/32573c97f5a24d46ce58939f965fd2c43ae82c71))
+
 ## [0.2.4](https://github.com/storybookjs/vitest-plugin-rsc/compare/v0.2.3...v0.2.4) (2026-09-20)
 
 

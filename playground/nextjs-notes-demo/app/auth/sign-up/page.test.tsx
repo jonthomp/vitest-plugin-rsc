@@ -7,7 +7,7 @@ test("renders the email-only sign-up form", async () => {
   await renderServer(<SignUpPage searchParams={Promise.resolve({})} />, { url: "/auth/sign-up" });
 
   await expect
-    .element(page.getByRole("heading", { level: 1, name: "Welcome" }))
+    .element(page.getByRole("heading", { level: 1, name: "Welcome to Notes Demo" }))
     .toBeInTheDocument();
   await expect.element(page.getByLabelText("Email")).toBeInTheDocument();
   await expect.element(page.getByRole("button", { name: "Create account" })).toBeInTheDocument();

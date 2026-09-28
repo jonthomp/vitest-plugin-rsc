@@ -26,7 +26,7 @@ test("shows account email on profile", async () => {
 
   await renderServer(<ProfilePage searchParams={noSearchParams} />, { url: "/profile" });
 
-  await expect.element(page.getByText(testUser.email)).toBeInTheDocument();
+  await expect.element(page.getByText(`Signed in as ${testUser.email}.`)).toBeInTheDocument();
 });
 
 test("renders a sign-out button", async () => {

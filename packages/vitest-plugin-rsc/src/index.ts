@@ -1,5 +1,5 @@
 import { createServer } from "node:net";
-import { type Plugin, type ViteDevServer } from "vite";
+import { type EnvironmentOptions, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginRscMinimal } from "@vitejs/plugin-rsc/plugin";
 import { createReactClientCoveragePlugin } from "./coverage.ts";
 
@@ -131,13 +131,52 @@ export function vitestPluginRSC(): Plugin[] {
           },
         };
       },
-      configResolved(config) {
-        const client = config.environments.client!;
-        const reactClient = config.environments.react_client!;
+    },
+    createReactClientCoveragePlugin(),
+    ...createReactClientOptimizerPlugins(),
+  ];
+}
 
-        // Vitest browser seeds the default client optimizer with test/setup entries.
-        // The hidden react_client runner imports client references later, so without
-        // the same scan roots Vite discovers deps mid-test and reloads the page.
+// react_client runs in the page through this plugin's module runner, so it has
+// its own dependency optimizer next to the one of the browser tests (`client`).
+function createReactClientOptimizerPlugins(): Plugin[] {
+  // Vitest 5 serves browser tests from the project's Vite server, where its
+  // `vitest:environments-module-runner` plugin configures every environment but
+  // `client` for Node and disables their optimizer. React's CommonJS entries
+  // would then reach the page raw. So take react_client's optimizeDeps from right
+  // before that hook and put them back after it. (Its other overrides, like
+  // keepProcessEnv, are harmless: the page defines `process`.) Once Vitest leaves
+  // browser-consumed environments alone, this round trip changes nothing.
+  let optimizeDeps: EnvironmentOptions["optimizeDeps"];
+
+  return [
+    {
+      name: "rsc:react-client-optimizer:before-vitest",
+      // The first post hook, so it includes what earlier hooks contributed.
+      enforce: "pre",
+      configEnvironment: {
+        order: "post",
+        handler(name, config) {
+          if (name === "react_client") optimizeDeps = config.optimizeDeps;
+        },
+      },
+    },
+    {
+      name: "rsc:react-client-optimizer",
+      enforce: "post",
+      configEnvironment: {
+        order: "post",
+        handler(name, config) {
+          if (name === "react_client") config.optimizeDeps = optimizeDeps;
+        },
+      },
+      configureServer(server) {
+        // Vitest seeds the browser optimizer with the test and setup files once
+        // the config is resolved. react_client later imports client components
+        // from those files, so scan them too, or Vite discovers their deps
+        // mid-test and reloads the page. Optimizers start on listen, after this.
+        const client = server.config.environments.client!;
+        const reactClient = server.config.environments.react_client!;
         reactClient.optimizeDeps.entries ??= client.optimizeDeps.entries;
         reactClient.optimizeDeps.exclude = [
           ...new Set([
@@ -147,7 +186,6 @@ export function vitestPluginRSC(): Plugin[] {
         ];
       },
     },
-    createReactClientCoveragePlugin(),
   ];
 }
 

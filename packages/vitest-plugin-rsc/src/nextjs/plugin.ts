@@ -452,6 +452,10 @@ export function vitestPluginNext(): Plugin[] {
                 include: [
                   "node:buffer",
                   "vitest-plugin-rsc/async-local-storage",
+                  // nextjs/client.tsx mocks navigation with @vitest/spy. The plugin
+                  // itself is excluded, so pre-bundle its dependency up front
+                  // instead of discovering it (and reloading) mid-run.
+                  "vitest-plugin-rsc > @vitest/spy",
                   "next/dist/client/app-call-server.js",
                   "next/dist/client/route-params.js",
                   "next/dist/client/components/app-router.js",

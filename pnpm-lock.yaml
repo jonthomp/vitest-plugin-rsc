@@ -63,13 +63,10 @@ importers:
         specifier: ^0.3.13
         version: 0.3.13
       '@vitejs/plugin-rsc':
-        specifier: 0.5.26
+        specifier: ^0.5.26
         version: 0.5.26(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.0))
-      '@vitest/expect':
-        specifier: 5.0.0-beta.2
-        version: 5.0.0-beta.2
       '@vitest/spy':
-        specifier: 5.0.0-beta.2
+        specifier: ^5.0.0-beta.2
         version: 5.0.0-beta.2
       convert-source-map:
         specifier: ^2.0.0
@@ -2223,9 +2220,6 @@ packages:
     peerDependenciesMeta:
       '@vitest/browser':
         optional: true
-
-  '@vitest/expect@5.0.0-beta.2':
-    resolution: {integrity: sha512-Phu+x/rxY3DZszQnLvPyzxShnm36bcIG/FViaFRKj3or7A+fZVCb78sp+EQ29+bjPkzpG5NrO4FTiic0lzji2Q==}
 
   '@vitest/mocker@5.0.0-beta.2':
     resolution: {integrity: sha512-MraW8T92TOcCd0MG+1gz5YeGgIGNsfiIcxuP9Azy7qcIxUwQ3zmngU1NbfvG0HRWVY++/FLsJ/xdKFsb7vZS0w==}
@@ -5795,15 +5789,6 @@ snapshots:
       vitest: 5.0.0-beta.2(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/browser-playwright@5.0.0-beta.2)(@vitest/coverage-v8@5.0.0-beta.2)(@vitest/ui@5.0.0-beta.2)(msw@2.14.6(@types/node@24.12.4)(typescript@6.0.3))(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.0))
     optionalDependencies:
       '@vitest/browser': 5.0.0-beta.2(msw@2.14.6(@types/node@24.12.4)(typescript@6.0.3))(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.0))(vitest@5.0.0-beta.2)
-
-  '@vitest/expect@5.0.0-beta.2':
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      '@types/chai': 5.2.3
-      '@vitest/spy': 5.0.0-beta.2
-      '@vitest/utils': 5.0.0-beta.2
-      chai: 6.2.2
-      tinyrainbow: 3.1.0
 
   '@vitest/mocker@5.0.0-beta.2(msw@2.14.6(@types/node@24.12.4)(typescript@6.0.3))(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.0))':
     dependencies:

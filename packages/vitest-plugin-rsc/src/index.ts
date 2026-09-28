@@ -153,12 +153,16 @@ export function vitestPluginRSC(): Plugin[] {
   ];
 }
 
-// Vitest 5 runs browser tests on the project's Vite server. Its post
-// configEnvironment hook swaps the optimizeDeps of every environment except
-// `client` for a disabled optimizer, which would leave react_client serving
-// CommonJS deps like react raw to the browser. Capture the plugin/user config
-// right before Vitest runs and put it back after. The capture hook is the first
-// post hook (enforce "pre"), so it still sees what normal hooks contributed.
+// Vitest 5 serves browser tests from the project's Vite server, where its
+// `vitest:environments-module-runner` plugin configures every environment except
+// `client` for Node. For react_client, which the browser consumes, that disables
+// the optimizer, so React's CommonJS entries would reach the page raw. (Its other
+// overrides, like keepProcessEnv, are harmless: the page defines `process`.)
+//
+// Capture react_client's optimizeDeps right before Vitest's post hook and put
+// them back after it. Capturing in the first post hook (enforce "pre") keeps what
+// normal hooks contributed, including partial configs they return. Once Vitest
+// leaves browser-consumed environments alone, this is a no-op and can go.
 function createReactClientOptimizeDepsPlugins(): Plugin[] {
   let optimizeDeps: EnvironmentOptions["optimizeDeps"];
   return [

@@ -37,22 +37,6 @@ export function vitestPluginRSC(): Plugin[] {
     {
       name: "rsc:run-in-browser",
       configureServer(server) {
-        const client = server.config.environments.client!;
-        const reactClient = server.config.environments.react_client!;
-
-        // Vitest browser seeds the default client optimizer with test/setup entries.
-        // The hidden react_client runner imports client references later, so without
-        // the same scan roots Vite discovers deps mid-test and reloads the page.
-        // Vitest 5 fills these in after configResolved, but before the server's
-        // optimizers start (on listen), so copy them here.
-        reactClient.optimizeDeps.entries ??= client.optimizeDeps.entries;
-        reactClient.optimizeDeps.exclude = [
-          ...new Set([
-            ...(client.optimizeDeps.exclude ?? []),
-            ...(reactClient.optimizeDeps.exclude ?? []),
-          ]),
-        ];
-
         server.ws.on("connection", (socket, req) => {
           const url = new URL(req.url ?? "/", "https://any.local");
           if (url.searchParams.get(reactClientWebSocketQuery) !== "1") {
@@ -149,25 +133,26 @@ export function vitestPluginRSC(): Plugin[] {
       },
     },
     createReactClientCoveragePlugin(),
-    ...createReactClientOptimizeDepsPlugins(),
+    ...createReactClientOptimizerPlugins(),
   ];
 }
 
-// Vitest 5 serves browser tests from the project's Vite server, where its
-// `vitest:environments-module-runner` plugin configures every environment except
-// `client` for Node. For react_client, which the browser consumes, that disables
-// the optimizer, so React's CommonJS entries would reach the page raw. (Its other
-// overrides, like keepProcessEnv, are harmless: the page defines `process`.)
-//
-// Capture react_client's optimizeDeps right before Vitest's post hook and put
-// them back after it. Capturing in the first post hook (enforce "pre") keeps what
-// normal hooks contributed, including partial configs they return. Once Vitest
-// leaves browser-consumed environments alone, this is a no-op and can go.
-function createReactClientOptimizeDepsPlugins(): Plugin[] {
+// react_client runs in the page through this plugin's module runner, so it has
+// its own dependency optimizer next to the one of the browser tests (`client`).
+function createReactClientOptimizerPlugins(): Plugin[] {
+  // Vitest 5 serves browser tests from the project's Vite server, where its
+  // `vitest:environments-module-runner` plugin configures every environment but
+  // `client` for Node and disables their optimizer. React's CommonJS entries
+  // would then reach the page raw. So take react_client's optimizeDeps from right
+  // before that hook and put them back after it. (Its other overrides, like
+  // keepProcessEnv, are harmless: the page defines `process`.) Once Vitest leaves
+  // browser-consumed environments alone, this round trip changes nothing.
   let optimizeDeps: EnvironmentOptions["optimizeDeps"];
+
   return [
     {
-      name: "rsc:react-client-optimize-deps:capture",
+      name: "rsc:react-client-optimizer:before-vitest",
+      // The first post hook, so it includes what earlier hooks contributed.
       enforce: "pre",
       configEnvironment: {
         order: "post",
@@ -177,13 +162,28 @@ function createReactClientOptimizeDepsPlugins(): Plugin[] {
       },
     },
     {
-      name: "rsc:react-client-optimize-deps:restore",
+      name: "rsc:react-client-optimizer",
       enforce: "post",
       configEnvironment: {
         order: "post",
         handler(name, config) {
-          if (name === "react_client" && optimizeDeps) config.optimizeDeps = optimizeDeps;
+          if (name === "react_client") config.optimizeDeps = optimizeDeps;
         },
+      },
+      configureServer(server) {
+        // Vitest seeds the browser optimizer with the test and setup files once
+        // the config is resolved. react_client later imports client components
+        // from those files, so scan them too, or Vite discovers their deps
+        // mid-test and reloads the page. Optimizers start on listen, after this.
+        const client = server.config.environments.client!;
+        const reactClient = server.config.environments.react_client!;
+        reactClient.optimizeDeps.entries ??= client.optimizeDeps.entries;
+        reactClient.optimizeDeps.exclude = [
+          ...new Set([
+            ...(client.optimizeDeps.exclude ?? []),
+            ...(reactClient.optimizeDeps.exclude ?? []),
+          ]),
+        ];
       },
     },
   ];

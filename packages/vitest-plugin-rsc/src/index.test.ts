@@ -1,6 +1,6 @@
 import { createServer, type Server } from "node:net";
 import { resolveConfig, type Plugin, type ViteDevServer } from "vite";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, describe, expect, test } from "vitest";
 import { vitestPluginRSC } from "./index.ts";
 
 const servers: Server[] = [];
@@ -45,11 +45,11 @@ test("does not hide non-port listen failures", async () => {
   expect(server.config.server.port).toBe(0);
 });
 
-test("keeps react_client pre-bundling when Vitest disables the optimizer of other environments", async () => {
-  // Mirrors Vitest 5's vitest:environments-module-runner plugin, which in
-  // browser mode only leaves the `client` environment's optimizeDeps alone.
-  const vitestLikePlugin: Plugin = {
-    name: "vitest-like",
+describe("react_client optimizer", () => {
+  // Stands in for Vitest 5's vitest:environments-module-runner plugin, which in
+  // browser mode disables the optimizer of every environment but `client`.
+  const vitestRunnerPlugin: Plugin = {
+    name: "vitest-runner",
     configEnvironment: {
       order: "post",
       handler(name, config) {
@@ -58,26 +58,50 @@ test("keeps react_client pre-bundling when Vitest disables the optimizer of othe
     },
   };
 
-  // Returning a partial config makes Vite merge it into a new environment config.
-  const addsDepPlugin: Plugin = {
-    name: "adds-dep",
-    configEnvironment(name) {
-      if (name === "react_client") return { optimizeDeps: { include: ["some-dep"] } };
-    },
-  };
+  async function resolveReactClientOptimizeDeps(...plugins: Plugin[]) {
+    const config = await resolveConfig(
+      { configFile: false, logLevel: "silent", plugins: [vitestPluginRSC(), ...plugins] },
+      "serve",
+    );
+    return config.environments.react_client!.optimizeDeps;
+  }
 
-  const config = await resolveConfig(
-    {
-      configFile: false,
-      logLevel: "silent",
-      plugins: [vitestPluginRSC(), addsDepPlugin, vitestLikePlugin],
-    },
-    "serve",
-  );
+  test("survives Vitest disabling it", async () => {
+    expect(await resolveReactClientOptimizeDeps(vitestRunnerPlugin)).toMatchObject({
+      noDiscovery: false,
+      include: expect.arrayContaining(["react", "react-dom/client", "react/jsx-runtime"]),
+    });
+  });
 
-  expect(config.environments.react_client!.optimizeDeps).toMatchObject({
-    noDiscovery: false,
-    include: expect.arrayContaining(["react", "react-dom/client", "react/jsx-runtime", "some-dep"]),
+  test("keeps deps that other plugins add from configEnvironment", async () => {
+    // A returned partial config is merged into a new environment config object.
+    const addsDepPlugin: Plugin = {
+      name: "adds-dep",
+      configEnvironment(name) {
+        if (name === "react_client") return { optimizeDeps: { include: ["some-dep"] } };
+      },
+    };
+
+    expect(
+      (await resolveReactClientOptimizeDeps(addsDepPlugin, vitestRunnerPlugin)).include,
+    ).toContain("some-dep");
+  });
+
+  test("scans the browser test files and shares their excludes", async () => {
+    const configureOptimizer = getHookHandler(
+      getPlugin("rsc:react-client-optimizer").configureServer,
+    );
+    const environments = {
+      client: { optimizeDeps: { entries: ["/src/app.test.tsx"], exclude: ["msw"] } },
+      react_client: { optimizeDeps: { exclude: ["vitest-plugin-rsc"] } },
+    };
+
+    await configureOptimizer.call({} as never, { config: { environments } } as never);
+
+    expect(environments.react_client.optimizeDeps).toEqual({
+      entries: ["/src/app.test.tsx"],
+      exclude: ["msw", "vitest-plugin-rsc"],
+    });
   });
 });
 

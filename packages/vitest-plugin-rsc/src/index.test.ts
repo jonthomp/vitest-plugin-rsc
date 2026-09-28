@@ -58,14 +58,26 @@ test("keeps react_client pre-bundling when Vitest disables the optimizer of othe
     },
   };
 
+  // Returning a partial config makes Vite merge it into a new environment config.
+  const addsDepPlugin: Plugin = {
+    name: "adds-dep",
+    configEnvironment(name) {
+      if (name === "react_client") return { optimizeDeps: { include: ["some-dep"] } };
+    },
+  };
+
   const config = await resolveConfig(
-    { configFile: false, logLevel: "silent", plugins: [vitestPluginRSC(), vitestLikePlugin] },
+    {
+      configFile: false,
+      logLevel: "silent",
+      plugins: [vitestPluginRSC(), addsDepPlugin, vitestLikePlugin],
+    },
     "serve",
   );
 
   expect(config.environments.react_client!.optimizeDeps).toMatchObject({
     noDiscovery: false,
-    include: expect.arrayContaining(["react", "react-dom/client", "react/jsx-runtime"]),
+    include: expect.arrayContaining(["react", "react-dom/client", "react/jsx-runtime", "some-dep"]),
   });
 });
 

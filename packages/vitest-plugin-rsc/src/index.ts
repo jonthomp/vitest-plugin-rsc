@@ -157,14 +157,16 @@ export function vitestPluginRSC(): Plugin[] {
 // configEnvironment hook swaps the optimizeDeps of every environment except
 // `client` for a disabled optimizer, which would leave react_client serving
 // CommonJS deps like react raw to the browser. Capture the plugin/user config
-// before Vitest runs and put it back after.
+// right before Vitest runs and put it back after. The capture hook is the first
+// post hook (enforce "pre"), so it still sees what normal hooks contributed.
 function createReactClientOptimizeDepsPlugins(): Plugin[] {
   let optimizeDeps: EnvironmentOptions["optimizeDeps"];
   return [
     {
       name: "rsc:react-client-optimize-deps:capture",
+      enforce: "pre",
       configEnvironment: {
-        order: "pre",
+        order: "post",
         handler(name, config) {
           if (name === "react_client") optimizeDeps = config.optimizeDeps;
         },

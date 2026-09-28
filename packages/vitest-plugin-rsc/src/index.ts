@@ -37,6 +37,22 @@ export function vitestPluginRSC(): Plugin[] {
     {
       name: "rsc:run-in-browser",
       configureServer(server) {
+        const client = server.config.environments.client!;
+        const reactClient = server.config.environments.react_client!;
+
+        // Vitest browser seeds the default client optimizer with test/setup entries.
+        // The hidden react_client runner imports client references later, so without
+        // the same scan roots Vite discovers deps mid-test and reloads the page.
+        // Vitest 5 fills these in after configResolved, but before the server's
+        // optimizers start (on listen), so copy them here.
+        reactClient.optimizeDeps.entries ??= client.optimizeDeps.entries;
+        reactClient.optimizeDeps.exclude = [
+          ...new Set([
+            ...(client.optimizeDeps.exclude ?? []),
+            ...(reactClient.optimizeDeps.exclude ?? []),
+          ]),
+        ];
+
         server.ws.on("connection", (socket, req) => {
           const url = new URL(req.url ?? "/", "https://any.local");
           if (url.searchParams.get(reactClientWebSocketQuery) !== "1") {
@@ -130,21 +146,6 @@ export function vitestPluginRSC(): Plugin[] {
             },
           },
         };
-      },
-      configResolved(config) {
-        const client = config.environments.client!;
-        const reactClient = config.environments.react_client!;
-
-        // Vitest browser seeds the default client optimizer with test/setup entries.
-        // The hidden react_client runner imports client references later, so without
-        // the same scan roots Vite discovers deps mid-test and reloads the page.
-        reactClient.optimizeDeps.entries ??= client.optimizeDeps.entries;
-        reactClient.optimizeDeps.exclude = [
-          ...new Set([
-            ...(client.optimizeDeps.exclude ?? []),
-            ...(reactClient.optimizeDeps.exclude ?? []),
-          ]),
-        ];
       },
     },
     createReactClientCoveragePlugin(),

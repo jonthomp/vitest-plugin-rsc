@@ -7,7 +7,7 @@ test("renders sign-in form with email, passkey, and link to sign up", async () =
   await renderServer(<SignInPage searchParams={Promise.resolve({})} />, { url: "/auth/sign-in" });
 
   await expect
-    .element(page.getByRole("heading", { level: 1, name: "Welcome" }))
+    .element(page.getByRole("heading", { level: 1, name: "Welcome back to Notes Demo" }))
     .toBeInTheDocument();
   await expect.element(page.getByLabelText("Email")).toBeInTheDocument();
   await expect

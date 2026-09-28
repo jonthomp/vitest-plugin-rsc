@@ -8,5 +8,5 @@ test("payload", async () => {
 
   await expect
     .element(page.getByTestId("rsc-payload"))
-    .toHaveTextContent(/.*true.*true.*true.*true/);
+    .toMatchTextContent(/.*true.*true.*true.*true/);
 });

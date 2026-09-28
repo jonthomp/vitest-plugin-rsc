@@ -6,20 +6,24 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import { ensureDir, formatMilliseconds, repoRoot, resolveOutputDir, writeJson } from "./utils.ts";
 
+// Vitest 5 reports benchmarks through the JSON reporter, per test.
 type BenchmarkReport = {
-  files?: {
-    filepath?: string;
-    groups?: {
+  testResults?: {
+    name?: string;
+    assertionResults?: {
       fullName?: string;
       benchmarks?: {
         name?: string;
-        hz?: number;
-        mean?: number;
-        rme?: number;
-        samples?: unknown[];
+        tasks?: BenchmarkTask[];
       }[];
     }[];
   }[];
+};
+
+type BenchmarkTask = {
+  name?: string;
+  latency?: { mean?: number; rme?: number; samplesCount?: number };
+  throughput?: { mean?: number };
 };
 
 async function main(): Promise<void> {
@@ -36,7 +40,7 @@ async function main(): Promise<void> {
   const compareJson = values.compare ?? process.env.PERF_VITEST_COMPARE;
 
   await ensureDir(outputDir);
-  runVitestBench(outputJson, compareJson);
+  runVitestBench(outputJson);
 
   await writeJson(path.join(outputDir, "metadata.json"), {
     createdAt: new Date().toISOString(),
@@ -44,12 +48,12 @@ async function main(): Promise<void> {
     outputJson,
     compareJson,
   });
-  await writeSummary(path.join(outputDir, "summary.md"), outputJson);
+  await writeSummary(path.join(outputDir, "summary.md"), outputJson, compareJson);
 
   console.log(`Wrote Vitest benchmark artifacts to ${path.relative(repoRoot, outputDir)}`);
 }
 
-function runVitestBench(outputJson: string, compareJson: string | undefined): void {
+function runVitestBench(outputJson: string): void {
   const command = [
     "--dir",
     "playground/rsc-vitest-demo",
@@ -57,13 +61,10 @@ function runVitestBench(outputJson: string, compareJson: string | undefined): vo
     "vitest",
     "bench",
     "src/perf/render.bench.tsx",
-    "--outputJson",
-    outputJson,
+    "--reporter=default",
+    "--reporter=json",
+    `--outputFile.json=${outputJson}`,
   ];
-
-  if (compareJson) {
-    command.push("--compare", compareJson);
-  }
 
   const result = spawnSync("pnpm", command, {
     cwd: repoRoot,
@@ -76,8 +77,13 @@ function runVitestBench(outputJson: string, compareJson: string | undefined): vo
   }
 }
 
-async function writeSummary(summaryPath: string, outputJson: string): Promise<void> {
-  const report = JSON.parse(await readFile(outputJson, "utf8")) as BenchmarkReport;
+async function writeSummary(
+  summaryPath: string,
+  outputJson: string,
+  compareJson: string | undefined,
+): Promise<void> {
+  const report = await readReport(outputJson);
+  const baseline = compareJson ? meansByName(await readReport(compareJson)) : undefined;
   const lines = [
     `# Vitest Benchmark Summary`,
     ``,
@@ -87,23 +93,53 @@ async function writeSummary(summaryPath: string, outputJson: string): Promise<vo
     ``,
   ];
 
-  for (const file of report.files ?? []) {
-    for (const group of file.groups ?? []) {
-      lines.push(`## ${group.fullName ?? file.filepath ?? "benchmark"}`, ``);
-      for (const benchmark of group.benchmarks ?? []) {
-        lines.push(
-          `- ${benchmark.name ?? "unnamed"}: mean ${formatMilliseconds(
-            benchmark.mean,
-          )}, hz ${formatHz(benchmark.hz)}, rme ${formatPercent(benchmark.rme)}, samples ${
-            benchmark.samples?.length ?? 0
-          }`,
-        );
+  for (const file of report.testResults ?? []) {
+    for (const test of file.assertionResults ?? []) {
+      for (const group of test.benchmarks ?? []) {
+        lines.push(`## ${group.name ?? test.fullName ?? file.name ?? "benchmark"}`, ``);
+        for (const task of group.tasks ?? []) {
+          const mean = task.latency?.mean;
+          const baselineMean = task.name ? baseline?.get(task.name) : undefined;
+          lines.push(
+            `- ${task.name ?? "unnamed"}: mean ${formatMilliseconds(mean)}, hz ${formatHz(
+              task.throughput?.mean,
+            )}, rme ${formatPercent(task.latency?.rme)}, samples ${
+              task.latency?.samplesCount ?? 0
+            }${baselineMean === undefined ? "" : `, vs baseline ${formatDelta(mean, baselineMean)}`}`,
+          );
+        }
+        lines.push(``);
       }
-      lines.push(``);
     }
   }
 
   await writeFile(summaryPath, `${lines.join("\n")}\n`);
+}
+
+async function readReport(file: string): Promise<BenchmarkReport> {
+  return JSON.parse(await readFile(file, "utf8")) as BenchmarkReport;
+}
+
+function meansByName(report: BenchmarkReport): Map<string, number> {
+  const means = new Map<string, number>();
+  for (const file of report.testResults ?? []) {
+    for (const test of file.assertionResults ?? []) {
+      for (const group of test.benchmarks ?? []) {
+        for (const task of group.tasks ?? []) {
+          if (task.name && typeof task.latency?.mean === "number") {
+            means.set(task.name, task.latency.mean);
+          }
+        }
+      }
+    }
+  }
+  return means;
+}
+
+function formatDelta(mean: unknown, baselineMean: number): string {
+  if (typeof mean !== "number" || !Number.isFinite(mean) || baselineMean === 0) return "n/a";
+  const delta = ((mean - baselineMean) / baselineMean) * 100;
+  return `${delta >= 0 ? "+" : ""}${delta.toFixed(1)}%`;
 }
 
 function gitMetadata(cwd: string): Record<string, string> {

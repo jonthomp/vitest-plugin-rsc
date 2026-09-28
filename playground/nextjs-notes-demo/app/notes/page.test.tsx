@@ -22,7 +22,11 @@ test("shows empty state when no notes exist", async () => {
   await renderNotesPage();
   await expect.element(page.getByText("No notes yet")).toBeInTheDocument();
   await expect
-    .element(page.getByText("Capture an idea, a todo, or a thought."))
+    .element(
+      page.getByText(
+        "Capture an idea, a todo, or a thought. Everything saves the moment you submit.",
+      ),
+    )
     .toBeInTheDocument();
   await expect
     .element(page.getByRole("link", { name: "Create your first note" }))

@@ -23,12 +23,12 @@ loadEnvConfig(root, nextNotesDev);
 function createSharedProjectConfig() {
   return {
     root,
+    // MSW's worker lives in the repo-root public/ (package.json#msw). Vitest 5
+    // serves browser tests from the project's own Vite server and publicDir.
+    publicDir: fileURLToPath(new URL("../../public", import.meta.url)),
     envPrefix: ["VITE_", "CI"],
     resolve: {
       tsconfigPaths: true,
-      alias: {
-        "vitest/suite": "@vitest/runner",
-      },
       conditions: [...vitestPluginRscSourceConditions, "test"],
     },
     optimizeDeps: {
